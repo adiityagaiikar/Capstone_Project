@@ -1,33 +1,36 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv()
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/roadsafety")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/roadsafetydb")
 
-try:
-    # Safely test the connection
-    test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
-    with test_engine.connect() as conn:
-        print("Successfully connected to PostgreSQL database.")
-    engine = test_engine
-except Exception as e:
-    print(f"Failed to connect to PostgreSQL: {e}")
-    print("Falling back to SQLite database for immediate execution.")
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+motor_client: AsyncIOMotorClient = None
+
+
+async def init_db(document_models: list):
+    """
+    Initialize the async MongoDB connection and register Beanie documents.
+    Compatible with Beanie 1.x and 2.x.
+    """
+    import beanie
+    global motor_client
+    motor_client = AsyncIOMotorClient(MONGO_URI)
+
+    # Parse the database name from the URI (handles Atlas URIs with query params too)
+    db_name = MONGO_URI.split("/")[-1].split("?")[0] or "roadsafetydb"
+    database = motor_client[db_name]
+
+    await beanie.init_beanie(
+        database=database,
+        document_models=document_models,
     )
+    print(f"[DB] Connected -> MongoDB database: '{db_name}'")
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def close_db():
+    global motor_client
+    if motor_client:
+        motor_client.close()
+        print("[DB] MongoDB connection closed.")

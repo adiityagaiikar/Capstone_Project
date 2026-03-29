@@ -1,71 +1,64 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
-# --- Token Schemas ---
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
 class Token(BaseModel):
     access_token: str
     token_type: str
 
+
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-# --- User Schemas ---
-class UserBase(BaseModel):
-    email: EmailStr
-    fullname: str
 
-class UserCreate(UserBase):
+# ── User ──────────────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    fullname: str
+    email: EmailStr
     password: str
 
-class UserResponse(UserBase):
-    id: int
+
+class UserResponse(BaseModel):
+    """Serializable user payload returned by the API. Never exposes the password."""
+    id: str                               # MongoDB _id as string
+    fullname: str
+    email: EmailStr
     is_admin: bool
+    is_active: bool
+    subscription_plan: str
+    razorpay_customer_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
-# --- Video Schemas ---
-class VideoBase(BaseModel):
-    filename: str
 
-class VideoResponse(VideoBase):
-    id: int
-    upload_time: datetime
-    status: str
-    uploader_id: int
+# ── Accident ──────────────────────────────────────────────────────────────────
 
-    class Config:
-        from_attributes = True
-
-# --- Accident Schemas ---
-class AccidentBase(BaseModel):
+class AccidentCreate(BaseModel):
     location: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     severity: str
     anomaly_type: str
     license_plate: Optional[str] = None
-    video_id: Optional[int] = None
 
-class AccidentCreate(AccidentBase):
-    pass
 
-class AccidentResponse(AccidentBase):
-    id: int
+class AccidentResponse(AccidentCreate):
+    id: str
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
-# --- Report Schemas ---
-class ReportBase(BaseModel):
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+class ReportResponse(BaseModel):
+    id: str
+    accident_id: str
     generated_text: str
-
-class ReportResponse(ReportBase):
-    id: int
-    accident_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

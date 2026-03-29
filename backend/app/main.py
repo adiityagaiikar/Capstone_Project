@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import models
-from app.core.database import engine
+from app.core.database import engine, SessionLocal
 from app.api.routers import auth, detection, analytics, reports, emergency
 
 # Create tables
@@ -12,6 +12,15 @@ app = FastAPI(
     description="Core backend orchestrator for Intelligent Transport Infrastructure.",
     version="1.0.0"
 )
+
+
+@app.on_event("startup")
+def seed_dummy_accounts():
+    db = SessionLocal()
+    try:
+        auth.ensure_dummy_users(db)
+    finally:
+        db.close()
 
 # CORS Configuration for React Frontend
 app.add_middleware(

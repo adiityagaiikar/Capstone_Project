@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
+motor
+beanie
+pydantic[email]
 python-multipart
 passlib[bcrypt]
 python-jose[cryptography]
@@ -10,3 +10,6 @@ websockets
 python-dotenv
 opencv-python
 numpy
+razorpay
+requests
+email-validator
